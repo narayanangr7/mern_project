@@ -1,7 +1,7 @@
-import AdminDashboard from "./AdminDashboard";
+import AppRouter from "./routers/AppRouter";
 
 function App() {
-  return <AdminDashboard />;
+  return <AppRouter />;
 }
 
 export default App;
