@@ -7,6 +7,26 @@ import {
 } from "@mui/icons-material";
 
 const DashboardContent = () => {
+  const [userStats, setUserStats] = React.useState({ students: 0, teachers: 0, total: 0 });
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await import("../api/userApi").then(m => m.getStats());
+        const stats = response.data;
+        setUserStats({
+          students: stats.students,
+          teachers: stats.teachers,
+          total: stats.total
+        });
+      } catch (err) {
+        console.error("Stats fetch failed", err);
+      }
+    };
+    if (user.role === 'admin') fetchStats();
+  }, [user.role]);
+
   return (
     <>
       <Breadcrumbs
@@ -57,7 +77,7 @@ const DashboardContent = () => {
               component="span"
               sx={{ color: "#6C2BD9", fontStyle: "italic" }}
             >
-              Administrator
+              {user.name || "Administrator"}
             </Box>
           </Typography>
           <Typography
@@ -66,51 +86,28 @@ const DashboardContent = () => {
               color: "#6B7280",
               maxWidth: 440,
               lineHeight: 1.5,
+              mb: 3
             }}
           >
-            Monitor institutional performance, manage users, and control
-            academic flows from your futuristic control panel.
+            Monitor and manage your campus ecosystem from this central command hub.
           </Typography>
+
+          <Box sx={{ display: "flex", gap: 3 }}>
+            <Box sx={{ p: 2, borderRadius: "16px", bgcolor: "#d4ccfd", border: "1px solid #DDD6FE", minWidth: "350px" }}>
+              <Typography sx={{ color: "#7C3AED", fontWeight: 700, fontSize: "12px", textTransform: "uppercase", mb: 1 }}>Students</Typography>
+              <Typography variant="h4" sx={{ color: "#1E1B4B", fontWeight: 800 }}>{userStats.students}</Typography>
+            </Box>
+            <Box sx={{ p: 2, borderRadius: "16px", bgcolor: "#ECFDF5", border: "1px solid #A7F3D0", minWidth: "350px" }}>
+              <Typography sx={{ color: "#059669", fontWeight: 700, fontSize: "12px", textTransform: "uppercase", mb: 1 }}>Teachers</Typography>
+              <Typography variant="h4" sx={{ color: "#1E1B4B", fontWeight: 800 }}>{userStats.teachers}</Typography>
+            </Box>
+            <Box sx={{ p: 2, borderRadius: "16px", bgcolor: "#b2d1f0", border: "1px solid #E5E7EB", minWidth: "350px" }}>
+              <Typography sx={{ color: "#7a869f", fontWeight: 700, fontSize: "12px", textTransform: "uppercase", mb: 1 }}>Total Users</Typography>
+              <Typography variant="h4" sx={{ color: "#1E1B4B", fontWeight: 800 }}>{userStats.total}</Typography>
+            </Box>
+          </Box>
         </Box>
-        <Box sx={{ display: "flex", gap: 1.5, flexShrink: 0 }}>
-          <Button
-            variant="outlined"
-            startIcon={<SettingsIcon />}
-            sx={{
-              borderRadius: "24px",
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: "13px",
-              borderColor: "#E5E7EB",
-              color: "#1E1B4B",
-              "&:hover": {
-                borderColor: "#6C2BD9",
-                color: "#6C2BD9",
-                bgcolor: "transparent",
-              },
-            }}
-          >
-            System Audit
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            sx={{
-              borderRadius: "24px",
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: "13px",
-              bgcolor: "#6C2BD9",
-              boxShadow: "0 4px 12px rgba(108, 43, 217, 0.3)",
-              "&:hover": {
-                bgcolor: "#5521B5",
-                boxShadow: "0 6px 16px rgba(108, 43, 217, 0.4)",
-              },
-            }}
-          >
-            Quick Action
-          </Button>
-        </Box>
+        
       </Box>
     </>
   );

@@ -15,10 +15,9 @@ import {
   Dashboard as DashboardIcon,
   People as PeopleIcon,
   Assignment as ResultsIcon,
-  CalendarToday as TimetableIcon,
   Campaign as NoticeIcon,
-  MenuBook as MaterialsIcon,
   School as SchoolIcon,
+  MenuBook as MaterialsIcon
 } from "@mui/icons-material";
 
 export const navItems = [
@@ -26,20 +25,25 @@ export const navItems = [
     id: "dashboard",
     icon: <DashboardIcon />,
     label: "Dashboard",
-    path: "/admin-dashboard",
+    path: "/student-dashboard",
   },
   {
-    id: "users",
-    icon: <PeopleIcon />,
-    label: "User Management",
-    path: "/admin-dashboard/user-management",
+    id: "results",
+    icon: <ResultsIcon />,
+    label: "Result",
+    path: "/student-dashboard/result",
   },
-  { id: "results", icon: <ResultsIcon />, label: "Results", path: "/admin-dashboard/Adminresult" },
   {
     id: "notices",
     icon: <NoticeIcon />,
-    label: "Notices",
-    path: "/admin-dashboard/notice",
+    label: "Notice Board",
+    path: "/student-dashboard/notices",
+  },
+  {
+    id: "study-materials",
+    icon: <MaterialsIcon />,
+    label: "Study Materials",
+    path: "/student-dashboard/materials",
   },
 ];
 
@@ -89,7 +93,7 @@ const Sidebar = () => {
           <SchoolIcon fontSize="small" />
         </Box>
         <Typography variant="h6" sx={{ fontSize: "17px", fontWeight: 700 }}>
-          AcademiaFlow
+          StudentFlow
         </Typography>
       </Box>
 

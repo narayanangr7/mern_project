@@ -29,7 +29,11 @@ import {
     DeleteOutline as DeleteIcon,
     MoreHoriz as MoreIcon,
     FileDownload as ExportIcon,
+    CheckCircleOutline as ApproveIcon,
 } from "@mui/icons-material";
+import { getUsers } from "../api/userApi";
+import { approveUser, deleteUser } from "../api/adminApi";
+import CreateUserModal from "../components/CreateUserModal";
 
 const departments = [
     "Computer Science",
@@ -57,23 +61,51 @@ const mockUsers = [
 ];
 
 const UserManagement = () => {
+    const [users, setUsers] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [openAddUser, setOpenAddUser] = useState(false);
-    const [formData, setFormData] = useState(initialFormState);
+
+    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+    const fetchUsers = async () => {
+        try {
+            setLoading(true);
+            const response = await getUsers();
+            // Filter out current user
+            setUsers(response.data.filter(u => u._id !== currentUser.id));
+        } catch (err) {
+            console.error("Failed to fetch users", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const handleApprove = async (id) => {
+        try {
+            await approveUser(id);
+            fetchUsers();
+        } catch (err) {
+            alert("Approval failed: " + (err.response?.data?.message || err.message));
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (window.confirm("Are you sure you want to remove this user?")) {
+            try {
+                await deleteUser(id);
+                fetchUsers();
+            } catch (err) {
+                alert("Deletion failed: " + (err.response?.data?.message || err.message));
+            }
+        }
+    };
 
     const handleOpenAddUser = () => setOpenAddUser(true);
-    const handleCloseAddUser = () => {
-        setOpenAddUser(false);
-        setFormData(initialFormState);
-    };
-
-    const handleFormChange = (field) => (e) => {
-        setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-    };
-
-    const handleSubmit = () => {
-        console.log("New User Data:", formData);
-        handleCloseAddUser();
-    };
+    const handleCloseAddUser = () => setOpenAddUser(false);
 
     const getRoleStyle = (role) => {
         if (role === "admin") return "bg-purple-100 text-purple-700";
@@ -135,61 +167,76 @@ const UserManagement = () => {
 
                 {/* Table Body */}
                 <div className="flex flex-col">
-                    {mockUsers.map((user, index) => (
-                        <div
-                            key={user.id}
-                            className={`grid grid-cols-[2.5fr_1fr_1.5fr_1fr_1fr] gap-4 px-6 py-4 items-center hover:bg-gray-50 transition-colors ${index !== mockUsers.length - 1 ? "border-b border-gray-200" : ""
-                                }`}
-                        >
-                            {/* Name & Contact */}
-                            <div className="flex items-center gap-4">
-                                <div className="relative">
-                                    <Avatar src={user.avatar} className="w-10 h-10 border border-gray-100 shadow-sm" />
-                                    <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(user.status)}`} />
+                    {loading ? (
+                        <div className="p-8 text-center text-gray-500 font-medium">Loading user command center...</div>
+                    ) : users.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500 font-medium">No users found.</div>
+                    ) : (
+                        users.map((user, index) => (
+                            <div
+                                key={user._id}
+                                className={`grid grid-cols-[2.5fr_1fr_1.5fr_1fr_1fr] gap-4 px-6 py-4 items-center hover:bg-gray-50 transition-colors ${index !== users.length - 1 ? "border-b border-gray-200" : ""
+                                    }`}
+                            >
+                                {/* Name & Contact */}
+                                <div className="flex items-center gap-4">
+                                    <div className="relative">
+                                        <Avatar className="w-10 h-10 border border-gray-100 shadow-sm bg-purple-500 text-white font-bold">
+                                            {user.name?.charAt(0)}
+                                        </Avatar>
+                                    </div>
+                                    <div>
+                                        <h4 className="font-semibold text-[#1E1B4B] text-sm">{user.name}</h4>
+                                        <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                                            <span className="text-xs">✉</span> {user.email}
+                                        </p>
+                                    </div>
                                 </div>
+
+                                {/* Role */}
                                 <div>
-                                    <h4 className="font-semibold text-[#1E1B4B] text-sm">{user.name}</h4>
-                                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                                        <span className="text-xs">✉</span> {user.email}
-                                    </p>
+                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold capitalize ${getRoleStyle(user.role)}`}>
+                                        {user.role}
+                                    </span>
+                                </div>
+
+                                {/* Department */}
+                                <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-lg bg-purple-100/50 text-purple-600 flex items-center justify-center text-sm">
+                                        🏫
+                                    </div>
+                                    <span className="text-sm text-gray-600 font-medium">{user.department || "General"}</span>
+                                </div>
+
+                                {/* Status */}
+                                <div className="flex items-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full ${user.isApproved ? "bg-emerald-500" : "bg-amber-500"}`} />
+                                    <span className="text-sm text-gray-500 capitalize">{user.isApproved ? "Approved" : "Pending"}</span>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex gap-2 justify-end">
+                                    {!user.isApproved && (
+                                        <IconButton 
+                                            size="small" 
+                                            title="Approve User"
+                                            className="text-emerald-500 hover:text-emerald-700 hover:bg-emerald-50"
+                                            onClick={() => handleApprove(user._id)}
+                                        >
+                                            <ApproveIcon fontSize="small" />
+                                        </IconButton>
+                                    )}
+                                    <IconButton 
+                                        size="small" 
+                                        className="text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                        onClick={() => handleDelete(user._id)}
+                                    >
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
                                 </div>
                             </div>
-
-                            {/* Role */}
-                            <div>
-                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold capitalize ${getRoleStyle(user.role)}`}>
-                                    {user.role}
-                                </span>
-                            </div>
-
-                            {/* Department */}
-                            <div className="flex items-center gap-2">
-                                <div className="w-7 h-7 rounded-lg bg-purple-100/50 text-purple-600 flex items-center justify-center text-sm">
-                                    🏫
-                                </div>
-                                <span className="text-sm text-gray-600 font-medium">{user.department}</span>
-                            </div>
-
-                            {/* Status */}
-                            <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full ${getStatusColor(user.status)}`} />
-                                <span className="text-sm text-gray-500 capitalize">{user.status}</span>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex gap-2 justify-end">
-                                <IconButton size="small" className="text-gray-400 hover:text-purple-600 hover:bg-purple-50">
-                                    <EditIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" className="text-gray-400 hover:text-red-500 hover:bg-red-50">
-                                    <DeleteIcon fontSize="small" />
-                                </IconButton>
-                                <IconButton size="small" className="text-gray-400 hover:bg-gray-100">
-                                    <MoreIcon fontSize="small" />
-                                </IconButton>
-                            </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
 
                 {/* Pagination placeholder */}
@@ -217,120 +264,12 @@ const UserManagement = () => {
                 </div>
             </Zoom>
 
-            {/* Add User Modal Dialog */}
-            <Dialog
+            {/* Create User Modal Dialog */}
+            <CreateUserModal
                 open={openAddUser}
                 onClose={handleCloseAddUser}
-                maxWidth="sm"
-                fullWidth
-                TransitionComponent={Fade}
-                transitionDuration={350}
-                PaperProps={{
-                    className: "rounded-3xl shadow-2xl overflow-hidden",
-                }}
-                BackdropProps={{
-                    className: "bg-[#1E1B4B]/40 backdrop-blur-sm",
-                }}
-            >
-                <DialogTitle className="flex items-center justify-between bg-gradient-to-br from-purple-600 to-purple-800 text-white px-8 py-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md">
-                            <PersonAddIcon />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-xl leading-tight">Add Teacher / Student</h3>
-                            <p className="text-xs text-purple-100/80 mt-1 font-medium tracking-wide">
-                                Fill in the details to create a new user account
-                            </p>
-                        </div>
-                    </div>
-                    <IconButton
-                        onClick={handleCloseAddUser}
-                        className="text-white/70 hover:text-white hover:bg-white/10"
-                    >
-                        <CloseIcon />
-                    </IconButton>
-                </DialogTitle>
-
-                <DialogContent className="px-8 pt-8 pb-4">
-                    <div className="flex flex-col gap-6 mt-2">
-                        <div className="flex gap-4">
-                            <TextField
-                                label="Full Name"
-                                placeholder="e.g. Dr. Sarah Jenkins"
-                                value={formData.fullName}
-                                onChange={handleFormChange("fullName")}
-                                fullWidth variant="outlined"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#F9FAFB' } }}
-                            />
-                            <TextField
-                                label="Email Address"
-                                placeholder="e.g. sarah@academia.edu"
-                                type="email"
-                                value={formData.email}
-                                onChange={handleFormChange("email")}
-                                fullWidth variant="outlined"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#F9FAFB' } }}
-                            />
-                        </div>
-                        <div className="flex gap-4">
-                            <TextField
-                                label="Phone Number"
-                                placeholder="e.g. +91 98765 43210"
-                                value={formData.phone}
-                                onChange={handleFormChange("phone")}
-                                fullWidth variant="outlined"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#F9FAFB' } }}
-                            />
-                            <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#F9FAFB' } }}>
-                                <InputLabel>Department</InputLabel>
-                                <Select value={formData.department} onChange={handleFormChange("department")} label="Department">
-                                    {departments.map((dept) => (
-                                        <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </div>
-                        <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#F9FAFB' } }}>
-                            <InputLabel>Role</InputLabel>
-                            <Select value={formData.role} onChange={handleFormChange("role")} label="Role">
-                                <MenuItem value="teacher">
-                                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-purple-500" />Teacher</div>
-                                </MenuItem>
-                                <MenuItem value="student">
-                                    <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500" />Student</div>
-                                </MenuItem>
-                            </Select>
-                        </FormControl>
-                        <TextField
-                            label="Address"
-                            placeholder="Enter full address"
-                            value={formData.address}
-                            onChange={handleFormChange("address")}
-                            fullWidth multiline rows={3} variant="outlined"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: '#F9FAFB' } }}
-                        />
-                    </div>
-                </DialogContent>
-
-                <DialogActions className="px-8 pb-8 pt-4 gap-3">
-                    <Button
-                        onClick={handleCloseAddUser}
-                        variant="outlined"
-                        sx={{ borderRadius: "12px", textTransform: "none", fontWeight: 600, px: 4, py: 1.5, borderColor: '#E5E7EB', color: '#6B7280' }}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={handleSubmit}
-                        variant="contained"
-                        disabled={!formData.fullName || !formData.email || !formData.role}
-                        sx={{ borderRadius: "12px", textTransform: "none", fontWeight: 600, px: 4, py: 1.5, background: 'linear-gradient(135deg, #8B5CF6 0%, #6C2BD9 100%)' }}
-                    >
-                        Add User
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                onUserCreated={fetchUsers}
+            />
         </div>
     );
 };

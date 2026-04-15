@@ -11,12 +11,23 @@ import {
 } from "@mui/material";
 
 import {
+  Search as SearchIcon,
+  Logout as LogoutIcon,
   Notifications as NotificationsIcon,
   DarkMode as DarkModeIcon,
-  Search as SearchIcon,
 } from "@mui/icons-material";
+import { useNavigate } from "react-router-dom";
 
 const Topbar = () => {
+  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   return (
     <AppBar
       position="sticky"
@@ -119,10 +130,8 @@ const Topbar = () => {
               alignItems: "center",
               gap: "10px",
               ml: 1,
-              cursor: "pointer",
               padding: "4px 8px",
               borderRadius: "8px",
-              "&:hover": { bgcolor: "#F4F2F7" },
             }}
           >
             <Box sx={{ textAlign: "right" }}>
@@ -134,7 +143,7 @@ const Topbar = () => {
                   lineHeight: 1.2,
                 }}
               >
-                admin User
+                {user.name || "User"}
               </Typography>
               <Typography
                 sx={{
@@ -142,9 +151,10 @@ const Topbar = () => {
                   fontWeight: 700,
                   color: "#6C2BD9",
                   letterSpacing: "0.5px",
+                  textTransform: "uppercase"
                 }}
               >
-                ADMIN
+                {user.role || "Guest"}
               </Typography>
             </Box>
             <Avatar
@@ -156,8 +166,25 @@ const Topbar = () => {
                 fontWeight: 700,
               }}
             >
-              AU
+              {(user.name || "U").charAt(0)}
             </Avatar>
+            <IconButton
+              onClick={handleLogout}
+              sx={{
+                ml: 1,
+                width: 38,
+                height: 38,
+                border: "1px solid #E5E7EB",
+                "&:hover": {
+                  color: "#EF4444",
+                  borderColor: "#EF4444",
+                  bgcolor: "#FEF2F2",
+                },
+              }}
+              title="Logout"
+            >
+              <LogoutIcon fontSize="small" />
+            </IconButton>
           </Box>
         </Box>
       </Toolbar>

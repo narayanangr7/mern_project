@@ -8,10 +8,12 @@ import {
   Grid,
   IconButton,
   InputAdornment,
+  Link as MuiLink,
 } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { Visibility, VisibilityOff, ArrowForward } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-
+import AuthBanner from "../components/AuthBanner";
+import { loginUser } from "../api/userApi";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -21,7 +23,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -30,113 +32,81 @@ const Login = () => {
       return;
     }
       
-    if (email === "admin@gmail.com" && password === "admin!233") {
-      navigate("/admin-dashboard");
-    } else if (email === "teacher@gmail.com") {
-      navigate("/teacher-dashboard");
-    } else {
-      navigate("/student-dashboard");
+    try {
+      const response = await loginUser({ email, password });
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user || { role: response.data.role }));
+
+      if (response.data.role === "admin") {
+        navigate("/admin-dashboard");
+      } else if (response.data.role === "teacher") {
+        navigate("/teacher-dashboard");
+      } else if (response.data.role === "student") {
+        navigate("/student-dashboard");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid credentials. Please try again.");
     }
   };
 
   return (
-    <Grid container sx={{ height: "100vh" }}>
-
-      <Grid
-        item
-        xs={false}
-        md={6}
-        sx={{
-          background: "linear-gradient(135deg, #6C2BD9 0%, #A78BFA 50%, #00F5D4 100%)",
-          display: { xs: "none", md: "flex" },
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          color: "#fff",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-
-        <Box
-          sx={{
-            position: "absolute",
-            width: 300,
-            height: 300,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.08)",
-            top: -60,
-            left: -60,
-          }}
-        />
-        <Box
-          sx={{
-            position: "absolute",
-            width: 200,
-            height: 200,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.06)",
-            bottom: 40,
-            right: -40,
-          }}
-        />
-        <Typography
-          variant="h3"
-          fontWeight="800"
-          sx={{ letterSpacing: "-0.5px", mb: 1, zIndex: 1 }}
-        >
-          AcademiaFlow
-        </Typography>
-        <Typography
-          variant="subtitle1"
-          sx={{ opacity: 0.85, zIndex: 1, textAlign: "center", maxWidth: 300 }}
-        >
-          Manage your institution with the next-gen ERP platform
-        </Typography>
+    <Grid container sx={{ height: "100vh", backgroundColor: "#F9FAFB" }}>
+      {/* Left side banner */}
+      <Grid size={{ md: 6 }} sx={{ display: { xs: "none", md: "block" } }}>
+        <AuthBanner />
       </Grid>
 
-
+      {/* Right side form */}
       <Grid
-        item
-        xs={12}
-        md={6}
-        component={Paper}
-        elevation={0}
-        square
+        size={{ xs: 12, md: 6 }}
+        component={Box}
         sx={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#FAFAFA",
         }}
       >
-        <Box sx={{ width: 360, px: 3 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            width: "100%",
+            maxWidth: 480,
+            p: 5,
+            bgcolor: "white",
+            borderRadius: "24px",
+            boxShadow: "0 10px 40px -10px rgba(0,0,0,0.05)",
+            mx: 2,
+          }}
+        >
+          {/* Logo Area */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", mb: 3 }}>
+            <Box
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: "8px",
+                bgcolor: "#4A1FA0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mr: 1.5,
+              }}
+            >
+              {/* Dummy heartbeat icon representation */}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </Box>
+            <Typography variant="h5" fontWeight="800" sx={{ color: "#371D70", letterSpacing: "-0.5px" }}>
+              AcademiaFlow
+            </Typography>
+          </Box>
 
-          <Typography
-            variant="h5"
-            fontWeight="800"
-            sx={{
-              display: { xs: "block", md: "none" },
-              textAlign: "center",
-              color: "#6C2BD9",
-              mb: 2,
-            }}
-          >
-            AcademiaFlow
+          <Typography variant="h4" fontWeight="800" align="center" sx={{ color: "#111827", mb: 1, letterSpacing: "-0.5px" }}>
+            Welcome Back
           </Typography>
-
-          <Typography
-            variant="h4"
-            fontWeight="700"
-            sx={{ color: "#1E1B4B", mb: 0.5 }}
-          >
-            Welcome back
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{ color: "#6B7280", mb: 4 }}
-          >
-            Sign in to continue to your dashboard
+          <Typography variant="body2" align="center" sx={{ color: "#6B7280", mb: 4 }}>
+            Please enter your details to access your dashboard.
           </Typography>
 
           {error && (
@@ -145,9 +115,10 @@ const Login = () => {
               sx={{
                 color: "#EF4444",
                 backgroundColor: "#FEF2F2",
-                borderRadius: "8px",
+                borderRadius: "10px",
                 padding: "10px 14px",
-                mb: 2,
+                mb: 3,
+                fontWeight: 500,
                 fontSize: "13px",
               }}
             >
@@ -163,89 +134,95 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               variant="outlined"
-              id="login-email"
+              placeholder="Enter your email"
               sx={{
+                mb: 2,
                 "& .MuiOutlinedInput-root": {
-                  borderRadius: "10px",
-                  "&.Mui-focused fieldset": {
-                    borderColor: "#6C2BD9",
-                  },
+                  borderRadius: "12px",
+                  backgroundColor: "#F9FAFB",
+                  "& fieldset": { borderColor: "#E5E7EB" },
+                  "&:hover fieldset": { borderColor: "#D1D5DB" },
+                  "&.Mui-focused fieldset": { borderColor: "#00F5D4", borderWidth: "2px" },
                 },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: "#6C2BD9",
-                },
+                "& .MuiInputLabel-root.Mui-focused": { color: "#371D70" },
               }}
             />
 
-            <TextField
-              fullWidth
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              margin="normal"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              variant="outlined"
-              id="login-password"
-              slotProps={{
-                input: {
+            <Box sx={{ position: "relative", mb: 3 }}>
+              <TextField
+                fullWidth
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                margin="normal"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                variant="outlined"
+                placeholder="••••••••"
+                sx={{
+                  m: 0,
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                    backgroundColor: "#F9FAFB",
+                    "& fieldset": { borderColor: "#E5E7EB" },
+                    "&:hover fieldset": { borderColor: "#D1D5DB" },
+                    "&.Mui-focused fieldset": { borderColor: "#00F5D4", borderWidth: "2px" },
+                  },
+                  "& .MuiInputLabel-root.Mui-focused": { color: "#371D70" },
+                }}
+                InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        size="small"
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
+                        {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                       </IconButton>
                     </InputAdornment>
                   ),
-                },
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "10px",
-                  "&.Mui-focused fieldset": {
-                    borderColor: "#6C2BD9",
-                  },
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: "#6C2BD9",
-                },
-              }}
-            />
+                }}
+              />
+              <MuiLink
+                href="#"
+                underline="hover"
+                sx={{
+                  position: "absolute",
+                  right: 8,
+                  top: -24,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "#6B7280",
+                  "&:hover": { color: "#371D70" }
+                }}
+              >
+                Forgot Password?
+              </MuiLink>
+            </Box>
 
             <Button
               fullWidth
               variant="contained"
               type="submit"
-              id="login-submit"
+              endIcon={<ArrowForward sx={{ ml: 1, fontSize: 18 }} />}
               sx={{
-                mt: 3,
-                py: 1.4,
-                borderRadius: "10px",
-                background: "linear-gradient(135deg, #6C2BD9 0%, #5521B5 100%)",
-                color: "#fff",
+                py: 1.5,
+                borderRadius: "12px",
+                bgcolor: "#00E0C2",
+                color: "#111827",
                 fontWeight: "700",
                 fontSize: "15px",
                 textTransform: "none",
-                boxShadow: "0 4px 14px rgba(108, 43, 217, 0.35)",
+                boxShadow: "0 4px 14px rgba(0, 245, 212, 0.25)",
                 "&:hover": {
-                  background: "linear-gradient(135deg, #5521B5 0%, #4A1FA0 100%)",
-                  boxShadow: "0 6px 20px rgba(108, 43, 217, 0.45)",
+                  bgcolor: "#00F5D4",
+                  boxShadow: "0 6px 20px rgba(0, 245, 212, 0.4)",
+                  transform: "translateY(-1px)",
                 },
+                transition: "all 0.2s"
               }}
             >
               Sign In
             </Button>
           </form>
 
-          <Typography
-            variant="body2"
-            sx={{ textAlign: "center", mt: 3, color: "#6B7280", fontSize: "12.5px" }}
-          >
-            © 2024 AcademiaFlow. All rights reserved.
-          </Typography>
-        </Box>
+        </Paper>
       </Grid>
     </Grid>
   );
